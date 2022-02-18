@@ -3,20 +3,28 @@ from facebook import GraphAPI
 from datetime import timedelta
 from PIL import Image
 from os import path
+import jsonpickle
+
+import utils
 
 
-class Reaction:
+class Reaction(object):
     def __init__(self, name: str, image: Image, emoji: str):
         self.name = name
         self.image = image
         self.emoji = emoji
 
+class PollStatus(object):
+    pass
 
 class PollManager:
 
     def __init__(self, graph_api: GraphAPI, album_id: str, winner_album_id: str,
                  reactions: list[Reaction], layout: tuple[int], max_posts_per_time: int,
-                 voting_duration: timedelta, poll_name: str):
+                 voting_duration: timedelta, poll_name: str, status_file: str):
+
+        self.logger = utils.get_logger(__name__)
+
         self.graph_api = graph_api
         self.reactions = reactions
         self.layout = layout
@@ -25,9 +33,20 @@ class PollManager:
         self.poll_name = poll_name
         self.album_id = album_id
         self.winner_album_id = winner_album_id
+        self.status_file = status_file
+        self.status = self._init_status()
 
+    def _init_status(self) -> PollStatus:
+        with open(self.status_file) as f:
+            try:
+                status = jsonpickle.decode(f)
+                self.logger.info(f"Successfully loaded PollManager status: {status}")
+                return status
+            except:
+                self.logger.warning("Can't load status from file.", exc_info=True)
+                return PollStatus()
 
-def init_reactions(config: SectionProxy):
+def init_reactions(config: SectionProxy) -> list[Reaction]:
     base_dir = config.get("base_dir")
     names = config.get("names").split(",")
     emojis = config.get("emojis").split(",")
