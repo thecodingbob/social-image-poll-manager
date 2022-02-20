@@ -27,3 +27,10 @@ def get_logger(name: str, level: int = logging.INFO) -> Logger:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+
+seconds_per_unit = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+
+
+def parse_duration(string_duration: str):
+    return int(string_duration[:-1]) * seconds_per_unit[string_duration[-1]]

@@ -1,2 +1,4 @@
 facebook_sdk
-Pillow
+Pillow~=9.0.1
+
+jsonpickle~=2.1.0
