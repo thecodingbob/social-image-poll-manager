@@ -51,7 +51,6 @@ def main():
     max_posts_per_time = bot_settings.getint("max_posts_per_time")
     voting_duration = timedelta(seconds=utils.parse_duration(bot_settings.get("voting_duration")))
     post_interval = timedelta(seconds=utils.parse_duration(bot_settings.get("post_interval")))
-    winners_per_match = bot_settings.getint("winners_per_match")
     poll_name = bot_settings.get("poll_name")
     og_urls_enabled = bot_settings.getboolean("og_urls_enabled")
     post_message = bot_settings.get("message")
@@ -62,7 +61,7 @@ def main():
                                pics_dir=pics_dir, reactions=reactions, layout=layout,
                                max_posts_per_time=max_posts_per_time,
                                voting_duration=voting_duration, poll_name=poll_name,
-                               original_urls_enabled=og_urls_enabled, winners_per_match=winners_per_match,
+                               original_urls_enabled=og_urls_enabled,
                                poll_data_file=path.join(resources_dir, "poll_data.json"),
                                post_interval=post_interval, post_message=post_message, winner_message= winner_message,
                                interactive_mode=interactive_mode)

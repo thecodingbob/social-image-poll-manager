@@ -108,7 +108,7 @@ class PollManager:
                  winner_message: Union[str, None] = None,
                  voting_duration: timedelta = timedelta(hours=6), post_interval: timedelta = timedelta(hours=1),
                  poll_data_file: str = "poll_data.json", winner_album_id: str = None,
-                 album_id: str = None, pics_dir: str = "./pics", winners_per_match: int = 1,
+                 album_id: str = None, pics_dir: str = "./pics",
                  interactive_mode: bool = False, original_urls_enabled: bool = False):
 
         self.logger = utils.get_logger(__class__.__name__)
@@ -126,7 +126,6 @@ class PollManager:
         self.album_id = album_id
         self.pics_dir = pics_dir
         self.winner_album_id = winner_album_id
-        self.winners_per_match = winners_per_match
         self.interactive_mode = interactive_mode
         self.original_urls_enabled = original_urls_enabled
         self.post_message = post_message
@@ -195,7 +194,7 @@ class PollManager:
                 retry_count += 1
         return page_post_id
 
-    def _generate_match_image(self, participants: List[MatchParticipantData], layout: Tuple[int]):
+    def _generate_match_image(self, participants: List[MatchParticipantData], layout: Tuple[int]) -> BytesIO:
         images = []
         for participant in participants:
             image = Image.open(participant.image_data.image_path)
@@ -204,7 +203,10 @@ class PollManager:
         while layout[0] * layout[1] > (len(participants) + 1):
             reduced_dim = max(layout) - 1
             layout = (min(layout), reduced_dim)
-        return compose(images, layout)
+        composed = compose(images, layout)
+        jpeg_bytes = BytesIO()
+        composed.save(jpeg_bytes, "JPEG", quality=80)
+        return jpeg_bytes
 
     def _get_current_phase(self) -> PhaseData:
         return self.poll_data.phases[-1]
@@ -265,6 +267,8 @@ class PollManager:
             raise RuntimeError(f"Invoked _post_loop() while phase is not in the running status!")
         posted = 0
         for match in self._get_current_phase().matches:
+            if match.match_status == MatchStatus.POSTED:
+                continue
             self.logger.info(f"Posting match {match}...")
             self._post_match(match)
             self._save_poll_data()
@@ -294,7 +298,7 @@ class PollManager:
     def _collect_reactions(self):
         matches = self._get_current_phase().matches
         for match in matches:
-            if match.status != MatchStatus.POSTED:
+            if match.match_status != MatchStatus.POSTED:
                 raise RuntimeError(f"Invoked _collect_reactions() while some match was not posted yet!")
             if (match.posted_time + self.voting_duration) > datetime.now():
                 raise RuntimeError(f"Invoked _collect_reactions() while some match was not over yet!")
@@ -325,7 +329,7 @@ class PollManager:
             self.logger.info(f"Starting post loop for phase {phase_number}...")
             self._post_loop()
         if phase_data.status == PhaseStatus.POSTED:
-            self.logger.info(f"All the matches for phase {phase_number} have been posted. Now waiting for"
+            self.logger.info(f"All the matches for phase {phase_number} have been posted. Now waiting for "
                              f"completion.")
             self._wait_for_phase_end()
 
@@ -333,11 +337,11 @@ class PollManager:
         previous_phase_data = self._get_current_phase()
         if previous_phase_data.status != PhaseStatus.OVER:
             raise RuntimeError(f"Invoked _generate_next_phase() while last phase was not over yet!")
-        phase_number = previous_phase_data.phase_number
+        phase_number = previous_phase_data.phase_number + 1
         self.logger.info(f"Generating data for phase {phase_number}...")
         phase_winners = []
         for match in previous_phase_data.matches:
-            if match.status != MatchStatus.OVER:
+            if match.match_status != MatchStatus.OVER:
                 raise RuntimeError(f"Invoked _generate_next_phase() while one of the phase matches was not over yet!")
             winner_reactions = max(match.participants, key=lambda participant: participant.reactions).reactions
             winners_data = filter(lambda participant: participant.reactions == winner_reactions, match.participants)
