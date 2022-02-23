@@ -64,7 +64,7 @@ def main():
                                original_urls_enabled=og_urls_enabled,
                                poll_data_file=path.join(resources_dir, "poll_data.json"),
                                post_interval=post_interval, post_message=post_message, winner_message= winner_message,
-                               interactive_mode=interactive_mode)
+                               interactive_mode=interactive_mode, page_id=page_id)
 
     poll_manager.start()
 

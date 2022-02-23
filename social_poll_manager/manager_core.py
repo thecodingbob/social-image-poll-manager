@@ -104,7 +104,7 @@ class PollData(object):
 class PollManager:
 
     def __init__(self, graph_api: GraphAPI, reactions: List[Reaction], layout: Tuple[int],
-                 max_posts_per_time: int, poll_name: str, post_message: str,
+                 max_posts_per_time: int, poll_name: str, post_message: str, page_id: str,
                  winner_message: Union[str, None] = None,
                  voting_duration: timedelta = timedelta(hours=6), post_interval: timedelta = timedelta(hours=1),
                  poll_data_file: str = "poll_data.json", winner_album_id: str = None,
@@ -123,12 +123,13 @@ class PollManager:
         self.voting_duration = voting_duration
         self.post_interval = post_interval
         self.poll_name = poll_name
+        self.page_id = page_id
         self.album_id = album_id
         self.pics_dir = pics_dir
         self.winner_album_id = winner_album_id
         self.interactive_mode = interactive_mode
         self.original_urls_enabled = original_urls_enabled
-        self.post_message = post_message
+        self.post_message = post_message.replace("\\n", "\n")
         self.winner_message = winner_message
         self.poll_data_file = poll_data_file
         self.poll_data = self._init_poll_data()
@@ -166,8 +167,8 @@ class PollManager:
         :param album: The album where to post the image
         :return the resulting post id
         """
-        if album is None:
-            album = self.album_id
+        if album is None or album == "":
+            album = self.page_id
         uploaded = False
         retry_count = 0
         while not uploaded:
