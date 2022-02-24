@@ -47,7 +47,11 @@ def main():
     if images_source == "ALBUM":
         source_albums_ids = bot_settings.get("source_albums_ids").split(",")
         collect_images_from_albums(album_ids=source_albums_ids, graph_api=graph_api, target_directory=pics_dir)
-    layout = tuple([int(x) for x in bot_settings.get("layout").split("x")])
+    layout_list = bot_settings.get("layout").split(",")
+    layout = dict()
+    for l_entry in layout_list:
+        key, value = l_entry.split(":")
+        layout[int(key)] = tuple(int(x) for x in value.split("x"))
     max_posts_per_time = bot_settings.getint("max_posts_per_time")
     voting_duration = timedelta(seconds=utils.parse_duration(bot_settings.get("voting_duration")))
     post_interval = timedelta(seconds=utils.parse_duration(bot_settings.get("post_interval")))
@@ -56,6 +60,7 @@ def main():
     post_message = bot_settings.get("message")
     winner_message = bot_settings.get("winner_message")
     interactive_mode = bot_settings.getboolean("interactive_mode")
+    max_participants_per_match = bot_settings.getint("max_participants_per_match")
 
     poll_manager = PollManager(graph_api=graph_api, album_id=album_id, winner_album_id=winner_album_id,
                                pics_dir=pics_dir, reactions=reactions, layout=layout,
@@ -64,7 +69,8 @@ def main():
                                original_urls_enabled=og_urls_enabled,
                                poll_data_file=path.join(resources_dir, "poll_data.json"),
                                post_interval=post_interval, post_message=post_message, winner_message= winner_message,
-                               interactive_mode=interactive_mode, page_id=page_id)
+                               interactive_mode=interactive_mode, page_id=page_id,
+                               max_participants_per_match=max_participants_per_match)
 
     poll_manager.start()
 

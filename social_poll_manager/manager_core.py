@@ -103,9 +103,9 @@ class PollData(object):
 
 class PollManager:
 
-    def __init__(self, graph_api: GraphAPI, reactions: List[Reaction], layout: Tuple[int],
+    def __init__(self, graph_api: GraphAPI, reactions: List[Reaction], layout: Dict[int, Tuple],
                  max_posts_per_time: int, poll_name: str, post_message: str, page_id: str,
-                 winner_message: Union[str, None] = None,
+                 max_participants_per_match: int, winner_message: Union[str, None] = None,
                  voting_duration: timedelta = timedelta(hours=6), post_interval: timedelta = timedelta(hours=1),
                  poll_data_file: str = "poll_data.json", winner_album_id: str = None,
                  album_id: str = None, pics_dir: str = "./pics",
@@ -118,7 +118,7 @@ class PollManager:
         for reaction in reactions:
             self.reactions[reaction.name] = reaction
         self.layout = layout
-        self.participants_per_match = self.layout[0] * self.layout[1]
+        self.max_participants_per_match = max_participants_per_match
         self.max_posts_per_time = max_posts_per_time
         self.voting_duration = voting_duration
         self.post_interval = post_interval
@@ -196,14 +196,14 @@ class PollManager:
         return page_post_id
 
     def _generate_match_image(self, participants: List[MatchParticipantData], layout: Tuple[int]) -> BytesIO:
+        if (layout[0] * layout[1]) != len(participants):
+            raise ValueError(f"Called _generate_match_image() with inconsistent layout and participant list length:"
+                             f"{len(participants)} & {layout}")
         images = []
         for participant in participants:
             image = Image.open(participant.image_data.image_path)
             self.reactions[participant.assigned_reaction].super_impose(image)
             images.append(image)
-        while layout[0] * layout[1] > (len(participants) + 1):
-            reduced_dim = max(layout) - 1
-            layout = (min(layout), reduced_dim)
         composed = compose(images, layout)
         jpeg_bytes = BytesIO()
         composed.save(jpeg_bytes, "JPEG", quality=80)
@@ -216,15 +216,15 @@ class PollManager:
         current_phase_data = self._get_current_phase()
         participants = current_phase_data.participants
         random.shuffle(participants)
-        match_number = int(math.ceil(len(participants) / self.participants_per_match))
+        match_number = int(math.ceil(len(participants) / self.max_participants_per_match))
         participant_idx = 0
         for i in range(match_number):
             match_participants: List[MatchParticipantData] = []
-            match_participants_num = self.participants_per_match
+            match_participants_num = self.max_participants_per_match
             if i == match_number - 2:
                 remaining_participants = len(participants) - participant_idx
                 # avoid auto win on last match
-                if remaining_participants == self.participants_per_match + 1:
+                if remaining_participants == self.max_participants_per_match + 1:
                     match_participants_num -= 1
             elif i == match_number - 1:
                 match_participants_num = len(participants) - participant_idx
@@ -250,7 +250,7 @@ class PollManager:
             .replace("$MATCH_NUMBER$", str(match.match_number)) \
             .replace("$TOTAL_MATCHES$", str(len(current_phase.matches)))
         match.post_id = self.upload_photo(
-            self._generate_match_image(match.participants, self.layout),
+            self._generate_match_image(match.participants, self.layout[len(match.participants)]),
             message,
             self.album_id)
         match.match_status = MatchStatus.POSTED

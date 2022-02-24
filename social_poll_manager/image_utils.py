@@ -12,7 +12,7 @@ from social_poll_manager import utils
 logger = utils.get_logger(__name__)
 
 
-def compose(images: List[Image.Image], layout: Tuple[int, int]):
+def compose(images: List[Image.Image], layout: Tuple[int]):
     width = images[0].width
     height = images[0].height
     result = Image.new("RGB", (width * layout[0], height * layout[1]))
