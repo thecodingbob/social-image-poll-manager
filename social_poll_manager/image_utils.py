@@ -49,7 +49,7 @@ def collect_images_from_albums(album_ids: list[str], graph_api: GraphAPI, target
         for album_id in album_ids:
             logger.info(f"Scraping album with id {album_id}...")
             for image_connection in graph_api.get_all_connections(album_id, connection_name="photos"):
-                if "Original post" in image_connection["name"]:
+                if "name" in image_connection and "Original post" in image_connection["name"]:
                     image_id = extract_original_post_id(image_connection["name"])
                 else:
                     image_id = image_connection["id"]
