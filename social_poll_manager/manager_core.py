@@ -80,7 +80,7 @@ class MatchData(object):
         self.participants = participants
         self.post_id: Union[str, None] = None
         self.match_number = match_number
-        self.posted_time: Union[datetime, None] = datetime.now()
+        self.posted_time: Union[datetime, None] = None
 
 
 @auto_str_and_repr
@@ -254,6 +254,7 @@ class PollManager:
             message,
             self.album_id)
         match.match_status = MatchStatus.POSTED
+        match.posted_time = datetime.now()
         if self.original_urls_enabled:
             participants_urls = [f"{self.reactions[participant.assigned_reaction].emoji}: " \
                                  f"{participant.image_data.fb_url}"
