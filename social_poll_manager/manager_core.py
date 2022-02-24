@@ -364,5 +364,9 @@ class PollManager:
     def start(self):
         while len(self._get_current_phase().participants) > 1:
             self._handle_current_phase()
+            if self.interactive_mode:
+                self.logger.info(f"Phase {self._get_current_phase().phase_number} is over. Press enter to "
+                                 f"proceed with next phase.")
+                input()
             self._generate_next_phase()
         self._handle_poll_end()
