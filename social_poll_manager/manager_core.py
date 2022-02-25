@@ -300,8 +300,10 @@ class PollManager:
     def _collect_reactions(self):
         matches = self._get_current_phase().matches
         for match in matches:
-            if match.match_status != MatchStatus.POSTED:
+            if match.match_status == MatchStatus.GENERATED:
                 raise RuntimeError(f"Invoked _collect_reactions() while some match was not posted yet!")
+            if match.match_status == MatchStatus.OVER:
+                continue
             if (match.posted_time + self.voting_duration) > datetime.now():
                 raise RuntimeError(f"Invoked _collect_reactions() while some match was not over yet!")
             self._get_reactions(match)
@@ -310,6 +312,8 @@ class PollManager:
 
     def _wait_for_phase_end(self):
         phase_data = self._get_current_phase()
+        if phase_data.status != PhaseStatus.POSTED:
+            raise ValueError("Called _wait_for_phase_end() while phase status is not POSTED!")
         latest_post_time = max(phase_data.matches, key=lambda match: match.posted_time).posted_time
         latest_post_time_expire = latest_post_time + self.voting_duration
         if latest_post_time_expire > datetime.now():
