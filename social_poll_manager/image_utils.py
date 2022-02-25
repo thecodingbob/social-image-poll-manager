@@ -13,15 +13,21 @@ logger = utils.get_logger(__name__)
 
 
 def compose(images: List[Image.Image], layout: Tuple[int]):
-    width = images[0].width
-    height = images[0].height
+    bigger_image = max(images, key=lambda img: img.width * img.height)
+    width = bigger_image.width
+    height = bigger_image.height
     result = Image.new("RGB", (width * layout[0], height * layout[1]))
     for i in range(layout[0]):
         for j in range(layout[1]):
             idx = (i * layout[1]) + j
             if idx == len(images):
                 return result
-            result.paste(images[idx], (i * width, j * height))
+            image = images[idx]
+            # assuming width > height for now
+            if image.height < bigger_image.height:
+                factor = bigger_image.height / image.height
+                image = image.resize((int(image.width * factor), int(image.height * factor)))
+            result.paste(image, (i * width, j * height))
     return result
 
 
