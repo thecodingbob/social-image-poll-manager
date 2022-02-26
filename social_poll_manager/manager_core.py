@@ -212,6 +212,16 @@ class PollManager:
     def _get_current_phase(self) -> PhaseData:
         return self.poll_data.phases[-1]
 
+    def _is_final_phase(self) -> bool:
+        current_phase = self._get_current_phase()
+        if current_phase.status == PhaseStatus.CREATED:
+            raise RuntimeError("Called _is_final_phase() without generating matches first!")
+        return len(current_phase.matches) == 1
+
+    def _is_playoff_phase(self) -> bool:
+        previous_phase = self.poll_data.phases[-2]
+        return len(previous_phase.matches) == 1
+
     def _generate_matches(self):
         current_phase_data = self._get_current_phase()
         participants = current_phase_data.participants
@@ -249,6 +259,10 @@ class PollManager:
             .replace("$PHASE_NUMBER$", str(current_phase.phase_number)) \
             .replace("$MATCH_NUMBER$", str(match.match_number)) \
             .replace("$TOTAL_MATCHES$", str(len(current_phase.matches)))
+        if self._is_final_phase():
+            message += "\nFINAL MATCH"
+        elif self._is_playoff_phase():
+            message += "\nPLAYOFF MATCH"
         match.post_id = self.upload_photo(
             self._generate_match_image(match.participants, self.layout[len(match.participants)]),
             message,
@@ -294,7 +308,7 @@ class PollManager:
                 id=page_story_id,
                 fields=f"reactions.limit(0).type({participant.assigned_reaction.upper()}).summary(total_count)"
             )["reactions"]["summary"]["total_count"]
-            self.logger.info(f"Participant {participant} got {reacts} reactions.")
+            self.logger.info(f"Participant {participant.image_data.image_id} got {reacts} reactions.")
             participant.reactions = reacts
 
     def _collect_reactions(self):
